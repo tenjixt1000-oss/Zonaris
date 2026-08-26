@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zonaris - Visual Multi-Timezone Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #F8FAFD;
+      --card-bg: #FFFFFF;
+      --primary: #4F46E5;
+      --primary-hover: #4338CA;
+      --primary-light: #EEF2FF;
+      --success: #059669;
+      --success-hover: #047857;
+      --danger: #EF4444;
+      --danger-light: #FEF2F2;
+      --text-main: #0F172A;
+      --text-sub: #64748B;
+      --border: #E2E8F0;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Opening Splash Screen */
+    #splash {
+      position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
+    }
+    .splash-glow {
+      position: absolute; width: 380px; height: 380px; background: #EEF2FF;
+      border-radius: 50%; filter: blur(40px); z-index: -1; animation: pulse 2s infinite alternate;
+    }
+    .splash-logo { width: 90px; height: 90px; position: relative; }
+    .splash-ring {
+      position: absolute; inset: 0; border: 4px solid #38BDF8; border-radius: 50%;
+      border-top-color: #818CF8; animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+    }
+    .splash-core {
+      position: absolute; width: 30px; height: 30px; background: var(--primary);
+      border-radius: 50%; top: 30px; left: 30px; animation: bounce 1s infinite alternate;
+    }
+    .splash-title { margin-top: 24px; font-size: 28px; font-weight: 800; letter-spacing: 4px; color: var(--primary); }
+    .splash-tagline { margin-top: 8px; font-size: 13px; color: var(--text-sub); text-align: center; max-width: 90%; }
+    .splash-bar { margin-top: 24px; width: 180px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .splash-bar-fill { width: 0; height: 100%; background: var(--primary); animation: loadBar 1.1s ease-out forwards; }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
+    @keyframes bounce { 0% { transform: scale(0.9); } 100% { transform: scale(1.1); } }
+    @keyframes loadBar { 0% { width: 0%; } 100% { width: 100%; } }
+
+    /* Buttons & Controls */
+    button {
+      font-family: inherit; font-size: 13px; font-weight: 700; border: none; outline: none;
+      cursor: pointer; border-radius: var(--radius-full); transition: all 0.2s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 16px; user-select: none;
+    }
+    button:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); color: #FFF; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--primary-light); color: var(--primary); }
+    .btn-secondary:hover { background: #E0E7FF; }
+    .btn-danger { background: var(--danger-light); color: var(--danger); }
+    .btn-danger:hover { background: #FEE2E2; }
+    .btn-success {
+      background: var(--success); color: #FFF; font-size: 13px; padding: 10px 24px;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3); border: 2px solid #34D399;
+    }
+    .btn-success:hover { background: var(--success-hover); }
+    .btn-subtle { background: #F1F5F9; color: #334155; }
+    .btn-subtle:hover { background: #E2E8F0; }
+
+    /* App Screens */
+    .app-screen { display: none; width: 100%; flex: 1; flex-direction: column; }
+    .app-screen.active { display: flex; }
+
+    /* Start Screen */
+    #screen-start { position: relative; align-items: center; justify-content: center; padding: 40px 20px; }
+    .start-card {
+      background: var(--card-bg); border-radius: var(--radius-lg); border: 1.5px solid var(--border);
+      box-shadow: var(--shadow-md); width: 100%; max-width: 600px; padding: 40px; position: relative; z-index: 10;
+    }
+    .start-header { text-align: center; margin-bottom: 24px; }
+    .start-header h1 { font-size: 34px; font-weight: 800; color: var(--primary); }
+    .start-header .tagline { font-size: 13px; font-weight: 700; color: #6366F1; margin: 4px 0; }
+    .start-header .subtitle { font-size: 13px; color: var(--text-sub); }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; }
+    .plan-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .plan-pill {
+      background: #F1F5F9; color: var(--text-sub); padding: 6px 14px; border-radius: var(--radius-full);
+      font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .plan-pill.active { background: var(--primary); color: #FFF; }
+    .plan-pill .close { font-size: 10px; cursor: pointer; }
+
+    .input-text, select {
+      width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border);
+      background: #F8FAFC; color: var(--text-main); font-family: inherit; font-size: 13px; font-weight: 600;
+      outline: none; transition: border-color 0.2s;
+    }
+    .input-text:focus, select:focus { border-color: var(--primary); background: #FFF; }
+
+    .tz-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .tz-item { display: flex; gap: 8px; align-items: center; }
+
+    /* Calendar Main Screen */
+    #screen-main { flex: 1; height: 100vh; overflow: hidden; }
+    .header-bar {
+      background: var(--card-bg); border-bottom: 1px solid var(--border);
+      padding: 10px 24px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .header-left, .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tabs-bar {
+      background: var(--bg); border-bottom: 1px solid var(--border); padding: 8px 24px;
+      display: flex; gap: 8px; overflow-x: auto; align-items: center;
+    }
+    .cal-tab {
+      background: #E2E8F0; color: var(--text-sub); padding: 6px 16px; border-radius: var(--radius-full);
+      font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .cal-tab.active { background: var(--primary); color: #FFF; box-shadow: var(--shadow-sm); }
+
+    .calendar-container {
+      flex: 1; overflow: auto; position: relative; background: var(--bg);
+      display: flex; flex-direction: column;
+    }
+    .calendar-svg { min-width: 100%; flex: 1; display: block; user-select: none; }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
+      z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-card {
+      background: var(--card-bg); border-radius: var(--radius-lg); width: 100%; max-width: 480px;
+      padding: 28px; box-shadow: var(--shadow-md); border: 1px solid var(--border); max-height: 90vh; overflow-y: auto;
+    }
+    .modal-card h3 { font-size: 20px; font-weight: 800; color: var(--text-main); margin-bottom: 16px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+    /* ==========================================
+       ⭐️ 印刷（PDF保存）完全最適化 CSS
+       ========================================== */
+    @media print {
+      @page {
+        size: landscape;
+        margin: 6mm;
+      }
+      *, *::before, *::after {
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+      html, body {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #FFFFFF !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      /* 不要なUIを完全に非表示 */
+      #splash, #screen-start, .header-bar, .tabs-bar, .modal-backdrop, #hover-ghost {
+        display: none !important;
+      }
+      #screen-main {
+        display: flex !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #FFFFFF !important;
+        overflow: hidden !important;
+      }
+      .calendar-container {
+        display: flex !important;
+        flex: 1 !important;
+        width: 100% !important;
+        height: 100% !important;
+        overflow: hidden !important;
+        background: #FFFFFF !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      /* カレンダーを自動スケーリングして用紙中央に1枚で収める */
+      #calendar-svg {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Opening Splash Screen -->
+  <div id="splash">
+    <div class="splash-glow"></div>
+    <div class="splash-logo">
+      <div class="splash-ring"></div>
+      <div class="splash-core"></div>
+    </div>
+    <div class="splash-title">Z O N A R I S</div>
+    <div class="splash-tagline" id="splash-tagline">Eliminating timezone friction. Connect moments, perfectly aligned.</div>
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+  </div>
+
+  <!-- 2. Setup Screen -->
+  <div id="screen-start" class="app-screen">
+    <div style="position: absolute; top: 20px; right: 24px; display: flex; gap: 10px; z-index: 20;">
+      <button class="btn-subtle" onclick="openImportModal()">📥 <span data-i18n="import_link">Import Link</span></button>
+      <button class="btn-subtle" onclick="toggleTimeFormat()"><span id="start-time-fmt">🕒 24H</span></button>
+      <select id="select-lang-start" onchange="setLanguage(this.value)" style="width: auto; padding: 6px 12px; border-radius: 9999px;">
+        <option value="English">English</option>
+        <option value="日本語">日本語</option>
+        <option value="中文">中文</option>
+        <option value="Español">Español</option>
+        <option value="한국어">한국어</option>
+        <option value="Français">Français</option>
+        <option value="Português">Português</option>
+        <option value="हिन्दी">हिन्दी</option>
+      </select>
+    </div>
+
+    <div class="start-card">
+      <div class="start-header">
+        <h1>Zonaris</h1>
+        <div class="tagline" data-i18n="tagline">Eliminating timezone friction. Connect moments, perfectly aligned.</div>
+        <div class="subtitle" data-i18n="subtitle">Visual Multi-Timezone Planner</div>
+      </div>
+
+      <div class="form-group">
+        <label data-i18n="tab_label">Plans / Calendars:</label>
+        <div class="plan-pills" id="start-plan-pills"></div>
+      </div>
+
+      <div class="form-group">
+        <label data-i18n="rename_plan">Plan Name:</label>
+        <input type="text" id="start-plan-name" class="input-text" oninput="onPlanNameChange(this.value)">
+      </div>
+
+      <div class="form-group">
+        <label data-i18n="region_label">Timezones for this plan:</label>
+        <div class="tz-list" id="start-tz-list"></div>
+        <button class="btn-secondary" onclick="addTimezoneToCurrentPlan()" data-i18n="add_region">＋ Add Region</button>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 28px;">
+        <button class="btn-subtle" onclick="openGuideModal()" style="flex: 1;" data-i18n="how_to_use">📖 Guide</button>
+        <button class="btn-primary" onclick="launchCalendar()" style="flex: 2; font-size: 14px;" data-i18n="launch">Launch Calendar ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Calendar Main Screen -->
+  <div id="screen-main" class="app-screen">
+    <div class="header-bar">
+      <div class="header-left">
+        <button class="btn-secondary" onclick="backToStart()" data-i18n="back">⚙️ Settings</button>
+        <button class="btn-subtle" onclick="exportShareLink()" style="background: #FDF4FF; color: #A855F7;">🔗 <span data-i18n="share">Share Link</span></button>
+        <button class="btn-subtle" onclick="openImportModal()">📥 <span data-i18n="import_link">Import</span></button>
+        <button class="btn-subtle" onclick="exportPDF()" style="background: #F0FDF4; color: #16A34A;">🖨️ <span data-i18n="print">Export PDF</span></button>
+        <button class="btn-danger" onclick="clearAllEvents()" data-i18n="clear_all">🗑️ Clear All</button>
+        <button class="btn-subtle" onclick="toggleTimeFormat()"><span id="main-time-fmt">🕒 24H</span></button>
+        
+        <div style="display: flex; align-items: center; background: #F8FAFC; border: 1px solid var(--border); border-radius: 9999px; padding: 2px 8px; gap: 4px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-sub);" data-i18n="zoom">Scale:</span>
+          <button class="btn-subtle" style="padding: 2px 8px; height: 24px;" onclick="changeZoom(-0.15)">－</button>
+          <span id="zoom-text" style="font-size: 11px; font-weight: 700; min-width: 38px; text-align: center;">100%</span>
+          <button class="btn-subtle" style="padding: 2px 8px; height: 24px;" onclick="changeZoom(0.15)">＋</button>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <button class="btn-success" onclick="openEventModal()" data-i18n="add_event">＋ ADD EVENT</button>
+      </div>
+    </div>
+
+    <div class="tabs-bar" id="main-tabs-bar"></div>
+
+    <div class="calendar-container" id="calendar-container">
+      <svg id="calendar-svg" class="calendar-svg"></svg>
+    </div>
+  </div>
+
+  <!-- Event Modal -->
+  <div id="modal-event" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 id="modal-event-title" data-i18n="add_event">Add Event</h3>
+      
+      <div class="form-group">
+        <label data-i18n="ev_title">Title:</label>
+        <input type="text" id="ev-title" class="input-text" value="Meeting">
+      </div>
+
+      <div class="form-group">
+        <label data-i18n="base_tz">Base Timezone:</label>
+        <select id="ev-base-tz"></select>
+      </div>
+
+      <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div>
+          <label data-i18n="date">Date:</label>
+          <input type="date" id="ev-date" class="input-text">
+        </div>
+        <div>
+          <label data-i18n="color">Color:</label>
+          <select id="ev-color"></select>
+        </div>
+      </div>
+
+      <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div>
+          <label>Start Time:</label>
+          <input type="time" id="ev-start-time" class="input-text" step="300" value="10:00">
+        </div>
+        <div>
+          <label>End Time:</label>
+          <input type="time" id="ev-end-time" class="input-text" step="300" value="11:00">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label data-i18n="show_in">Display in:</label>
+        <div id="ev-checkboxes" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+      </div>
+
+      <div class="form-group">
+        <label data-i18n="loc">Location:</label>
+        <input type="text" id="ev-loc" class="input-text">
+      </div>
+
+      <div class="form-group">
+        <label data-i18n="with">With:</label>
+        <input type="text" id="ev-with" class="input-text">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-danger" id="btn-delete-event" onclick="deleteCurrentEvent()" style="margin-right: auto; display: none;" data-i18n="delete">Delete</button>
+        <button class="btn-subtle" onclick="closeModal('modal-event')">Cancel</button>
+        <button class="btn-primary" onclick="saveEvent()" data-i18n="save">Save Event</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guide Modal -->
+  <div id="modal-guide" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 data-i18n="guide_title">About Zonaris & Quick Guide</h3>
+      <div id="guide-content" style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-main); line-height: 1.6;"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="closeModal('modal-guide')">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div id="modal-import" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 data-i18n="import_title">Import Shared Plan</h3>
+      <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 12px;" data-i18n="import_prompt">Paste the Zonaris share link or token here:</p>
+      <input type="text" id="import-input" class="input-text" placeholder="https://zonaris.app/plan#...">
+      <div style="margin-top: 8px;">
+        <button class="btn-subtle" onclick="pasteImportFromClipboard()" style="font-size: 11px;">📋 Paste from Clipboard</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-subtle" onclick="closeModal('modal-import')">Cancel</button>
+        <button class="btn-primary" onclick="doImportPlan()">Import & Sync</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================
+       Data & State
+       ========================================== */
+    const TIMEZONES = {
+      "🇯🇵 Tokyo (JST)": "Asia/Tokyo", "🇰🇷 Seoul (KST)": "Asia/Seoul", "🇨🇳 Beijing, Shanghai (CST)": "Asia/Shanghai",
+      "🇭🇰 Hong Kong (HKT)": "Asia/Hong_Kong", "🇹🇼 Taipei (CST)": "Asia/Taipei", "🇸🇬 Singapore (SGT)": "Asia/Singapore",
+      "🇹🇭 Bangkok (ICT)": "Asia/Bangkok", "🇻🇳 Hanoi (ICT)": "Asia/Bangkok", "🇮🇩 Jakarta (WIB)": "Asia/Jakarta",
+      "🇮🇳 New Delhi, Mumbai (IST)": "Asia/Kolkata", "🇦🇪 Dubai (GST)": "Asia/Dubai", "🇦🇺 Sydney, Melbourne (AEST)": "Australia/Sydney",
+      "🇦🇺 Perth (AWST)": "Australia/Perth", "🇳🇿 Auckland (NZST)": "Pacific/Auckland", "🇺🇸 Tulsa, Chicago (CT)": "America/Chicago",
+      "🇺🇸 New York (ET)": "America/New_York", "🇺🇸 Los Angeles, SF (PT)": "America/Los_Angeles", "🇺🇸 Denver, Phoenix (MT)": "America/Denver",
+      "🇺🇸 Honolulu (HST)": "Pacific/Honolulu", "🇺🇸 Anchorage (AKST)": "America/Anchorage", "🇨🇦 Toronto (ET)": "America/Toronto",
+      "🇨🇦 Vancouver (PT)": "America/Vancouver", "🇲🇽 Mexico City (CST)": "America/Mexico_City", "🇧🇷 São Paulo (BRT)": "America/Sao_Paulo",
+      "🇦🇷 Buenos Aires (ART)": "America/Argentina/Buenos_Aires", "🇬🇧 London, Dublin (GMT/BST)": "Europe/London",
+      "🇫🇷 Paris (CET/CEST)": "Europe/Paris", "🇩🇪 Berlin, Frankfurt (CET/CEST)": "Europe/Berlin", "🇮🇹 Rome (CET/CEST)": "Europe/Rome",
+      "🇪🇸 Madrid, Barcelona (CET/CEST)": "Europe/Madrid", "🇳🇱 Amsterdam (CET/CEST)": "Europe/Amsterdam", "🇨🇭 Zurich (CET/CEST)": "Europe/Zurich",
+      "🇸🇪 Stockholm (CET/CEST)": "Europe/Stockholm", "🇪🇬 Cairo (EET)": "Africa/Cairo", "🇿🇦 Johannesburg (SAST)": "Africa/Johannesburg",
+      "🇸🇦 Riyadh (AST)": "Asia/Riyadh"
+    };
+
+    const LANGUAGES = {
+      English: {
+        tagline: "Eliminating timezone friction. Connect moments, perfectly aligned.",
+        subtitle: "Visual Multi-Timezone Planner", tab_label: "Plans / Calendars:",
+        rename_plan: "Plan Name:", region_label: "Timezones for this plan:", add_region: "＋ Add Region",
+        launch: "Launch Calendar ➔", how_to_use: "📖 Guide", back: "⚙️ Settings",
+        add_event: "＋ ADD EVENT", print: "Export PDF", share: "Share Link", import_link: "Import",
+        clear_all: "🗑️ Clear All", confirm_clear: "Clear all events in this calendar?",
+        zoom: "Scale:", ev_title: "Title:", base_tz: "Base Timezone:", date: "Date:",
+        color: "Color:", show_in: "Display in:", loc: "Location:", with: "With:",
+        save: "Save Event", delete: "Delete", guide_title: "About Zonaris & Quick Guide",
+        guide_items: [
+          "1. 🔗 Multi-Plan & Instant Share: Tabs maintain isolated schedules. Click 'Share Link' to send your plan across the world.",
+          "2. ⚡ Visual Time Convergence: Events align to local hours across borders, connected by real-time dashed vectors.",
+          "3. 👆 Instant Slot Creation: Click on any empty hour block to drop an event instantly without manual math.",
+          "4. 🔍 Adaptive Density & 12h/24h: Toggle between 12h (AM/PM) and 24h, and zoom the vertical axis freely."
+        ],
+        share_copied: "Shareable Link copied to clipboard!", import_title: "Import Shared Plan",
+        import_prompt: "Paste the Zonaris share link or token here:"
+      },
+      日本語: {
+        tagline: "時差によるすれ違いをゼロに。世界の時間を、美しく直結する。",
+        subtitle: "直感的なマルチ時差カレンダー", tab_label: "プラン / カレンダー一覧:",
+        rename_plan: "プラン名:", region_label: "このプランで比較する地域:", add_region: "＋ 地域を追加",
+        launch: "カレンダーを開く ➔", how_to_use: "📖 使い方", back: "⚙️ 設定",
+        add_event: "＋ 予定を追加", print: "PDF保存", share: "共有リンク", import_link: "共有を読込",
+        clear_all: "🗑️ 全消去", confirm_clear: "このカレンダーの全予定を消去しますか？",
+        zoom: "縦の縮尺:", ev_title: "タイトル:", base_tz: "基準タイムゾーン:", date: "日付:",
+        color: "カラー:", show_in: "表示する地域:", loc: "場所:", with: "同行者:",
+        save: "予定を保存", delete: "削除", guide_title: "Zonaris について ＆ 使い方ガイド",
+        guide_items: [
+          "1. 🔗 複数プランと共有リンク: タブごとに独立したカレンダーを保持できます。「共有リンク」から一瞬で送信・共同編集が可能です。",
+          "2. ⚡ 時差の直線リンク: 各地域の予定は現地時間の高さに配置され、同一時刻を示す点線で直結されます。",
+          "3. 👆 クリックで即時作成: カレンダーの空いている時間枠をクリックするだけで、その時間を初期値として予定を作成できます。",
+          "4. 🔍 縮尺と12h/24h切り替え: 上部バーでタイムラインの拡大・縮小や、12時間（AM/PM）/24時間表示を即座に切り替えられます。"
+        ],
+        share_copied: "共有リンクをクリップボードにコピーしました！", import_title: "共有プランの読み込み",
+        import_prompt: "Zonarisの共有リンクまたはコードを貼り付けてください:"
+      }
+    };
+
+    const COLORS = {
+      "Ocean Blue":   { bg: "#E0F2FE", hover: "#BAE6FD", fg: "#0369A1", line: "#0284C7", highlight: "#F0F9FF" },
+      "Mint Green":   { bg: "#DCFCE7", hover: "#BBF7D0", fg: "#15803D", line: "#16A34A", highlight: "#F0FDF4" },
+      "Coral Sunset": { bg: "#FFEDD5", hover: "#FED7AA", fg: "#C2410C", line: "#EA580C", highlight: "#FFF7ED" },
+      "Lavender Sky": { bg: "#F3E8FF", hover: "#E9D5FF", fg: "#7E22CE", line: "#9333EA", highlight: "#FAF5FF" },
+      "Rose Blossom": { bg: "#FFE4E6", hover: "#FECDD3", fg: "#BE123C", line: "#E11D48", highlight: "#FFF1F2" },
+      "Teal Mist":    { bg: "#CCFBF1", hover: "#99F6E4", fg: "#0F766E", line: "#0D9488", highlight: "#F0FDFA" },
+      "Amber Glow":   { bg: "#FEF3C7", hover: "#FDE68A", fg: "#B45309", line: "#D97706", highlight: "#FFFBEB" },
+      "Slate Classic":{ bg: "#F1F5F9", hover: "#E2E8F0", fg: "#334155", line: "#475569", highlight: "#F8FAFC" }
+    };
+
+    let state = {
+      lang: "English",
+      timeFormat: "24h",
+      zoom: 1.0,
+      activePlanId: "plan_1",
+      planCounter: 1,
+      plans: {
+        plan_1: {
+          name: "Schedule 1",
+          timezones: ["🇺🇸 New York (ET)", "🇯🇵 Tokyo (JST)"],
+          events: {}
+        }
+      },
+      editingEventId: null,
+      currentHoverSlot: null,
+      renderedBoxes: [],
+      renderInfo: null
+    };
+
+    /* ==========================================
+       タイムゾーン計算エンジン (Intl API)
+       ========================================== */
+    function getTzOffsetMinutes(date, tzIana) {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tzIana,
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: 'numeric', minute: 'numeric', second: 'numeric',
+        hour12: false
+      });
+      const parts = formatter.formatToParts(date);
+      const p = {};
+      parts.forEach(part => { if (part.type !== 'literal') p[part.type] = parseInt(part.value, 10); });
+      if (p.hour === 24) p.hour = 0;
+      const localTimestamp = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second || 0);
+      return (localTimestamp - date.getTime()) / 60000;
+    }
+
+    function parseDateInTz(dateStr, timeStr, tzIana) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const [h, min] = timeStr.split(':').map(Number);
+      const utcGuess = Date.UTC(y, m - 1, d, h, min);
+      let offset = getTzOffsetMinutes(new Date(utcGuess), tzIana);
+      const realUtc = utcGuess - offset * 60000;
+      offset = getTzOffsetMinutes(new Date(realUtc), tzIana);
+      return new Date(utcGuess - offset * 60000);
+    }
+
+    function getDatePartsInTz(date, tzIana) {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tzIana,
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: 'numeric', minute: 'numeric',
+        hour12: false
+      });
+      const parts = formatter.formatToParts(date);
+      const p = {};
+      parts.forEach(part => { if (part.type !== 'literal') p[part.type] = parseInt(part.value, 10); });
+      if (p.hour === 24) p.hour = 0;
+      return p;
+    }
+
+    /* ==========================================
+       Initialization & Splash
+       ========================================== */
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.location.hash) {
+        try {
+          const token = window.location.hash.substring(1);
+          const jsonStr = decodeURIComponent(escape(atob(token)));
+          const data = JSON.parse(jsonStr);
+          state.plans["imported"] = data;
+          state.activePlanId = "imported";
+        } catch (e) { console.error("URL Share load error", e); }
+      }
+
+      setTimeout(() => {
+        const splash = document.getElementById("splash");
+        splash.style.opacity = "0";
+        setTimeout(() => {
+          splash.style.display = "none";
+          document.getElementById("screen-start").classList.add("active");
+          renderStartScreen();
+        }, 500);
+      }, 1200);
+    });
+
+    /* ==========================================
+       Internationalization (i18n)
+       ========================================== */
+    function setLanguage(lang) {
+      state.lang = lang;
+      const dict = LANGUAGES[lang] || LANGUAGES["English"];
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (dict[key]) el.textContent = dict[key];
+      });
+      document.getElementById("splash-tagline").textContent = dict.tagline;
+      renderStartScreen();
+      if (document.getElementById("screen-main").classList.contains("active")) {
+        renderCalendar();
+      }
+    }
+
+    function toggleTimeFormat() {
+      state.timeFormat = state.timeFormat === "24h" ? "12h" : "24h";
+      document.getElementById("start-time-fmt").textContent = `🕒 ${state.timeFormat.toUpperCase()}`;
+      document.getElementById("main-time-fmt").textContent = `🕒 ${state.timeFormat.toUpperCase()}`;
+      if (document.getElementById("screen-main").classList.contains("active")) {
+        renderCalendar();
+      }
+    }
+
+    /* ==========================================
+       Start Screen Logic
+       ========================================== */
+    function renderStartScreen() {
+      const plan = state.plans[state.activePlanId];
+      document.getElementById("start-plan-name").value = plan.name;
+
+      const pillsContainer = document.getElementById("start-plan-pills");
+      pillsContainer.innerHTML = "";
+      Object.keys(state.plans).forEach(pid => {
+        const p = state.plans[pid];
+        const pill = document.createElement("div");
+        pill.className = `plan-pill ${pid === state.activePlanId ? 'active' : ''}`;
+        pill.innerHTML = `<span>${p.name}</span>`;
+        pill.onclick = () => { state.activePlanId = pid; renderStartScreen(); };
+        if (Object.keys(state.plans).length > 1) {
+          const close = document.createElement("span");
+          close.className = "close";
+          close.textContent = "✕";
+          close.onclick = (e) => { e.stopPropagation(); deletePlan(pid); };
+          pill.appendChild(close);
+        }
+        pillsContainer.appendChild(pill);
+      });
+
+      const addPill = document.createElement("div");
+      addPill.className = "plan-pill";
+      addPill.textContent = "＋";
+      addPill.onclick = createNewPlan;
+      pillsContainer.appendChild(addPill);
+
+      const tzList = document.getElementById("start-tz-list");
+      tzList.innerHTML = "";
+      plan.timezones.forEach((tz, index) => {
+        const item = document.createElement("div");
+        item.className = "tz-item";
+        
+        const sel = document.createElement("select");
+        Object.keys(TIMEZONES).forEach(k => {
+          const opt = document.createElement("option");
+          opt.value = k; opt.textContent = k;
+          if (k === tz) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.onchange = (e) => { plan.timezones[index] = e.target.value; };
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn-danger";
+        delBtn.style.padding = "6px 10px";
+        delBtn.textContent = "✕";
+        delBtn.onclick = () => {
+          if (plan.timezones.length <= 1) return alert("Please keep at least one timezone.");
+          plan.timezones.splice(index, 1);
+          renderStartScreen();
+        };
+
+        item.appendChild(sel);
+        item.appendChild(delBtn);
+        tzList.appendChild(item);
+      });
+    }
+
+    function onPlanNameChange(val) {
+      state.plans[state.activePlanId].name = val || "Untitled";
+      renderStartScreen();
+    }
+
+    function createNewPlan() {
+      state.planCounter++;
+      const nid = `plan_${state.planCounter}`;
+      state.plans[nid] = {
+        name: `Schedule ${state.planCounter}`,
+        timezones: ["🇺🇸 New York (ET)", "🇯🇵 Tokyo (JST)"],
+        events: {}
+      };
+      state.activePlanId = nid;
+      renderStartScreen();
+    }
+
+    function deletePlan(pid) {
+      delete state.plans[pid];
+      state.activePlanId = Object.keys(state.plans)[0];
+      renderStartScreen();
+    }
+
+    function addTimezoneToCurrentPlan() {
+      const plan = state.plans[state.activePlanId];
+      const available = Object.keys(TIMEZONES).find(tz => !plan.timezones.includes(tz)) || "🇬🇧 London, Dublin (GMT/BST)";
+      plan.timezones.push(available);
+      renderStartScreen();
+    }
+
+    function launchCalendar() {
+      document.getElementById("screen-start").classList.remove("active");
+      document.getElementById("screen-main").classList.add("active");
+      renderMainTabs();
+      renderCalendar();
+    }
+
+    function backToStart() {
+      document.getElementById("screen-main").classList.remove("active");
+      document.getElementById("screen-start").classList.add("active");
+      renderStartScreen();
+    }
+
+    function swapTimezones(idx) {
+      const plan = state.plans[state.activePlanId];
+      if (idx >= 0 && idx < plan.timezones.length - 1) {
+        const tmp = plan.timezones[idx];
+        plan.timezones[idx] = plan.timezones[idx + 1];
+        plan.timezones[idx + 1] = tmp;
+        renderCalendar();
+      }
+    }
+
+    /* ==========================================
+       Calendar UI & SVG Render Engine
+       ========================================== */
+    function renderMainTabs() {
+      const tabsBar = document.getElementById("main-tabs-bar");
+      tabsBar.innerHTML = "";
+      Object.keys(state.plans).forEach(pid => {
+        const p = state.plans[pid];
+        const tab = document.createElement("div");
+        tab.className = `cal-tab ${pid === state.activePlanId ? 'active' : ''}`;
+        tab.textContent = p.name;
+        tab.onclick = () => { state.activePlanId = pid; renderMainTabs(); renderCalendar(); };
+        tabsBar.appendChild(tab);
+      });
+      const addTab = document.createElement("div");
+      addTab.className = "cal-tab";
+      addTab.textContent = "＋";
+      addTab.onclick = () => { createNewPlan(); renderMainTabs(); renderCalendar(); };
+      tabsBar.appendChild(addTab);
+    }
+
+    function changeZoom(delta) {
+      state.zoom = Math.max(0.5, Math.min(2.2, +(state.zoom + delta).toFixed(2)));
+      document.getElementById("zoom-text").textContent = `${Math.round(state.zoom * 100)}%`;
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const container = document.getElementById("calendar-container");
+      const svg = document.getElementById("calendar-svg");
+      const plan = state.plans[state.activePlanId];
+      const tzs = plan.timezones;
+
+      const containerW = container.clientWidth || 1400;
+      const containerH = container.clientHeight || 800;
+
+      // 1. 各タイムゾーンにおける各イベントのローカル時間を収集
+      const localEventsData = [];
+      const evList = Object.values(plan.events);
+
+      if (evList.length === 0) {
+        const now = new Date();
+        const dummyUtc = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0));
+        tzs.forEach(tz => {
+          const iana = TIMEZONES[tz];
+          const p = getDatePartsInTz(dummyUtc, iana);
+          localEventsData.push({ year: p.year, month: p.month, day: p.day, hour: 8, minute: 0 });
+          localEventsData.push({ year: p.year, month: p.month, day: p.day, hour: 18, minute: 0 });
+        });
+      } else {
+        evList.forEach(ev => {
+          const sUtc = new Date(ev.start);
+          const eUtc = new Date(ev.end);
+          tzs.forEach(tz => {
+            const iana = TIMEZONES[tz];
+            const sp = getDatePartsInTz(sUtc, iana);
+            const ep = getDatePartsInTz(eUtc, iana);
+            localEventsData.push(sp);
+            localEventsData.push(ep);
+          });
+        });
+      }
+
+      // 基準日の算出
+      const sortedLocalTimestamps = localEventsData.map(d => Date.UTC(d.year, d.month - 1, d.day, d.hour, d.minute)).sort((a, b) => a - b);
+      const minTimestamp = sortedLocalTimestamps[0];
+      const maxTimestamp = sortedLocalTimestamps[sortedLocalTimestamps.length - 1];
+
+      const minDateObj = new Date(minTimestamp);
+      const baseDate = new Date(Date.UTC(minDateObj.getUTCFullYear(), minDateObj.getUTCMonth(), minDateObj.getUTCDate(), 0, 0, 0));
+
+      const minHours = Math.max(0, Math.floor((minTimestamp - baseDate.getTime()) / 3600000) - 1);
+      const maxHours = Math.ceil((maxTimestamp - baseDate.getTime()) / 3600000) + 2;
+      const totalHours = Math.max(1, maxHours - minHours);
+
+      // レイアウト幅・高さの動的計算
+      const COL_START = 100;
+      const COL_GAP = 54;
+      const availableW = containerW - COL_START - 40;
+      const colW = Math.max(240, (availableW - (tzs.length - 1) * COL_GAP) / tzs.length);
+      const hourH = Math.max(45, Math.min(90, (containerH - 140) / totalHours)) * state.zoom;
+      const totalW = COL_START + tzs.length * (colW + COL_GAP);
+      const totalH = totalHours * hourH + 130;
+
+      state.renderInfo = { COL_START, COL_GAP, colW, hourH, minHours, maxHours, baseDate, tzs, totalW, totalH };
+      state.renderedBoxes = [];
+
+      svg.setAttribute("width", Math.max(totalW, containerW));
+      svg.setAttribute("height", Math.max(totalH, containerH));
+      svg.innerHTML = "";
+
+      // 基準日付バッジ
+      const dateBadgeG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      const dRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      dRect.setAttribute("x", 12); dRect.setAttribute("y", 16);
+      dRect.setAttribute("width", COL_START - 24); dRect.setAttribute("height", 36);
+      dRect.setAttribute("rx", "12"); dRect.setAttribute("fill", "#EEF2FF");
+      dRect.setAttribute("stroke", "#C7D2FE"); dRect.setAttribute("stroke-width", "1");
+      dateBadgeG.appendChild(dRect);
+
+      const dTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      dTitle.setAttribute("x", (12 + COL_START - 12) / 2); dTitle.setAttribute("y", 30);
+      dTitle.setAttribute("text-anchor", "middle"); dTitle.setAttribute("font-size", "8");
+      dTitle.setAttribute("font-weight", "800"); dTitle.setAttribute("fill", "#6366F1");
+      dTitle.textContent = "DATE";
+      dateBadgeG.appendChild(dTitle);
+
+      const dVal = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      dVal.setAttribute("x", (12 + COL_START - 12) / 2); dVal.setAttribute("y", 44);
+      dVal.setAttribute("text-anchor", "middle"); dVal.setAttribute("font-size", "11");
+      dVal.setAttribute("font-weight", "700"); dVal.setAttribute("fill", "#312E81");
+      dVal.textContent = `${String(baseDate.getUTCMonth() + 1).padStart(2, '0')}/${String(baseDate.getUTCDate()).padStart(2, '0')}`;
+      dateBadgeG.appendChild(dVal);
+      svg.appendChild(dateBadgeG);
+
+      // 時間軸グリッド & 0:00 日付区切り
+      for (let h = Math.floor(minHours); h <= Math.ceil(maxHours); h++) {
+        const y = 70 + (h - minHours) * hourH;
+        const currentDt = new Date(baseDate.getTime() + h * 3600000);
+        const hourVal = currentDt.getUTCHours();
+
+        let timeLabel = `${String(hourVal).padStart(2, '0')}:00`;
+        if (state.timeFormat === "12h") {
+          const p = hourVal >= 12 ? "PM" : "AM";
+          const h12 = hourVal % 12 === 0 ? 12 : hourVal % 12;
+          timeLabel = `${h12} ${p}`;
+        }
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", COL_START); line.setAttribute("y1", y);
+        line.setAttribute("x2", Math.max(totalW, containerW)); line.setAttribute("y2", y);
+        line.setAttribute("stroke", hourVal === 0 ? "#4F46E5" : "#E2E8F0");
+        line.setAttribute("stroke-width", hourVal === 0 ? "2" : "1");
+        if (hourVal !== 0) line.setAttribute("stroke-dasharray", "3,3");
+        svg.appendChild(line);
+
+        if (hourVal === 0) {
+          const dateText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          dateText.setAttribute("x", COL_START - 14); dateText.setAttribute("y", y - 8);
+          dateText.setAttribute("text-anchor", "end"); dateText.setAttribute("font-size", "11");
+          dateText.setAttribute("font-weight", "800"); dateText.setAttribute("fill", "#4F46E5");
+          dateText.textContent = `${String(currentDt.getUTCMonth() + 1).padStart(2, '0')}/${String(currentDt.getUTCDate()).padStart(2, '0')}`;
+          svg.appendChild(dateText);
+        }
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", COL_START - 14); text.setAttribute("y", y + (hourVal === 0 ? 12 : 4));
+        text.setAttribute("text-anchor", "end");
+        text.setAttribute("font-size", hourVal === 0 ? "8" : "10");
+        text.setAttribute("font-weight", hourVal === 0 ? "700" : "600");
+        text.setAttribute("fill", hourVal === 0 ? "#94A3B8" : "#64748B");
+        text.textContent = timeLabel;
+        svg.appendChild(text);
+      }
+
+      // 列ヘッダー & 左右入れ替えボタン（⇄）
+      tzs.forEach((tz, i) => {
+        const x1 = COL_START + i * (colW + COL_GAP);
+        const x2 = x1 + colW;
+        
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", x1); rect.setAttribute("y", 16);
+        rect.setAttribute("width", colW); rect.setAttribute("height", 36);
+        rect.setAttribute("rx", "18"); rect.setAttribute("fill", "#FFF");
+        rect.setAttribute("stroke", "#E2E8F0"); rect.setAttribute("stroke-width", "1.5");
+        svg.appendChild(rect);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", (x1 + x2) / 2); text.setAttribute("y", 38);
+        text.setAttribute("text-anchor", "middle"); text.setAttribute("font-size", "11");
+        text.setAttribute("font-weight", "700"); text.setAttribute("fill", "#0F172A");
+        text.textContent = tz;
+        svg.appendChild(text);
+
+        // 左右入れ替えボタン
+        if (i < tzs.length - 1) {
+          const swapBtnX = x2 + (COL_GAP / 2);
+          const swapG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          swapG.style.cursor = "pointer";
+          swapG.onclick = (e) => { e.stopPropagation(); swapTimezones(i); };
+
+          const swapCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          swapCircle.setAttribute("cx", swapBtnX); swapCircle.setAttribute("cy", 34);
+          swapCircle.setAttribute("r", 14); swapCircle.setAttribute("fill", "#EEF2FF");
+          swapCircle.setAttribute("stroke", "#C7D2FE"); swapCircle.setAttribute("stroke-width", "1");
+          swapG.appendChild(swapCircle);
+
+          const swapText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          swapText.setAttribute("x", swapBtnX); swapText.setAttribute("y", 38);
+          swapText.setAttribute("text-anchor", "middle"); swapText.setAttribute("font-size", "11");
+          swapText.setAttribute("font-weight", "800"); swapText.setAttribute("fill", "#4F46E5");
+          swapText.textContent = "⇄";
+          swapG.appendChild(swapText);
+
+          svg.appendChild(swapG);
+        }
+      });
+
+      // =========================================================
+      // 2. ⭐️ 重複時間帯の自動分割配置（区間彩色アルゴリズム）
+      // =========================================================
+      const renderedEventCardCenters = {};
+
+      tzs.forEach((tz, colIdx) => {
+        const iana = TIMEZONES[tz];
+        const colEvents = [];
+
+        Object.keys(plan.events).forEach(eid => {
+          const ev = plan.events[eid];
+          if (ev.visible_in && !ev.visible_in.includes(tz)) return;
+
+          const sUtc = new Date(ev.start);
+          const eUtc = new Date(ev.end);
+          const sp = getDatePartsInTz(sUtc, iana);
+          const ep = getDatePartsInTz(eUtc, iana);
+
+          const sLocalTs = Date.UTC(sp.year, sp.month - 1, sp.day, sp.hour, sp.minute);
+          const eLocalTs = Date.UTC(ep.year, ep.month - 1, ep.day, ep.hour, ep.minute);
+
+          const startDiffHours = (sLocalTs - baseDate.getTime()) / 3600000;
+          const endDiffHours = (eLocalTs - baseDate.getTime()) / 3600000;
+
+          const y1 = 70 + (startDiffHours - minHours) * hourH;
+          const y2 = 70 + (endDiffHours - minHours) * hourH;
+
+          colEvents.push({
+            eid, ev, sp, ep, sUtc, eUtc,
+            y1, y2, blockH: Math.max(34, y2 - y1),
+            startHours: startDiffHours, endHours: endDiffHours
+          });
+        });
+
+        // 開始時刻順にソート
+        colEvents.sort((a, b) => a.startHours - b.startHours || (b.endHours - b.startHours) - (a.endHours - a.startHours));
+
+        // 重複関係のグラフ構築（直接重なる予定をリンク）
+        for (let i = 0; i < colEvents.length; i++) {
+          const evA = colEvents[i];
+          evA.overlapGroup = colEvents.filter(evB => 
+            !(evA.endHours <= evB.startHours || evA.startHours >= evB.endHours)
+          );
+        }
+
+        // 連結成分（クラスタ）の抽出
+        const processed = new Set();
+        const clusters = [];
+        colEvents.forEach(item => {
+          if (processed.has(item)) return;
+          const cluster = [];
+          const queue = [item];
+          processed.add(item);
+          while (queue.length > 0) {
+            const curr = queue.shift();
+            cluster.push(curr);
+            curr.overlapGroup.forEach(neighbor => {
+              if (!processed.has(neighbor)) {
+                processed.add(neighbor);
+                queue.push(neighbor);
+              }
+            });
+          }
+          clusters.push(cluster);
+        });
+
+        // クラスタごとにサブ列インデックスを割り当て
+        clusters.forEach(cluster => {
+          cluster.sort((a, b) => a.startHours - b.startHours || (b.endHours - b.startHours) - (a.endHours - a.startHours));
+          const assignedCols = []; // 各サブ列の最新のendHours
+          cluster.forEach(item => {
+            let colIndex = 0;
+            while (assignedCols[colIndex] > item.startHours) {
+              colIndex++;
+            }
+            assignedCols[colIndex] = item.endHours;
+            item.subColIndex = colIndex;
+          });
+          const totalCols = assignedCols.length;
+          cluster.forEach(item => {
+            item.totalSubCols = totalCols;
+          });
+        });
+
+        // 各イベントブロックの描画
+        colEvents.forEach(item => {
+          const { eid, ev, sp, ep, sUtc, eUtc, y1, blockH, subColIndex, totalSubCols } = item;
+          const pal = COLORS[ev.color] || COLORS["Ocean Blue"];
+
+          const colBaseX = COL_START + colIdx * (colW + COL_GAP);
+          const subColW = (colW - (totalSubCols - 1) * 6) / totalSubCols;
+          const x1 = colBaseX + subColIndex * (subColW + 6);
+
+          state.renderedBoxes.push({ col: colIdx, y1, y2: y1 + blockH });
+
+          if (!renderedEventCardCenters[eid]) renderedEventCardCenters[eid] = {};
+          renderedEventCardCenters[eid][colIdx] = {
+            cx: x1 + subColW / 2,
+            cy: y1 + blockH / 2,
+            leftX: x1,
+            rightX: x1 + subColW
+          };
+
+          const durHours = Math.floor((eUtc - sUtc) / 3600000);
+          const durMins = Math.floor(((eUtc - sUtc) % 3600000) / 60000);
+          const durStr = durHours > 0 ? `⏱️ ${durHours}h ${String(durMins).padStart(2, '0')}m` : `⏱️ ${durMins}m`;
+
+          const formatLocalPart = (p) => {
+            if (state.timeFormat === "24h") {
+              return `${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
+            } else {
+              const ap = p.hour >= 12 ? "PM" : "AM";
+              const h12 = p.hour % 12 === 0 ? 12 : p.hour % 12;
+              return `${h12}:${String(p.minute).padStart(2, '0')} ${ap}`;
+            }
+          };
+          const timeRangeStr = `${formatLocalPart(sp)} - ${formatLocalPart(ep)}`;
+
+          // Event Card Group
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          g.style.cursor = "pointer";
+          g.onclick = (e) => { e.stopPropagation(); openEventModal(eid); };
+
+          const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          r.setAttribute("x", x1); r.setAttribute("y", y1);
+          r.setAttribute("width", subColW); r.setAttribute("height", blockH);
+          r.setAttribute("rx", "14"); r.setAttribute("fill", pal.bg);
+          r.setAttribute("stroke", pal.line); r.setAttribute("stroke-width", "1.5");
+          g.appendChild(r);
+
+          // フローレイアウト（文字被り防止）
+          if (blockH >= 110) {
+            let currY = y1 + 18;
+
+            const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            title.setAttribute("x", x1 + 14); title.setAttribute("y", currY);
+            title.setAttribute("font-size", subColW < 140 ? "12" : "15");
+            title.setAttribute("font-weight", "800");
+            title.setAttribute("fill", pal.fg); title.textContent = ev.title;
+            g.appendChild(title);
+            currY += 24;
+
+            const badgeW = Math.min(105, subColW - 28);
+            if (badgeW > 60) {
+              const bRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+              bRect.setAttribute("x", x1 + 14); bRect.setAttribute("y", currY);
+              bRect.setAttribute("width", badgeW); bRect.setAttribute("height", 20);
+              bRect.setAttribute("rx", "10"); bRect.setAttribute("fill", pal.highlight);
+              bRect.setAttribute("stroke", pal.line); bRect.setAttribute("stroke-width", "1");
+              g.appendChild(bRect);
+
+              const bText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+              bText.setAttribute("x", x1 + 14 + badgeW / 2); bText.setAttribute("y", currY + 14);
+              bText.setAttribute("text-anchor", "middle"); bText.setAttribute("font-size", "9");
+              bText.setAttribute("font-weight", "800"); bText.setAttribute("fill", pal.fg);
+              bText.textContent = durStr;
+              g.appendChild(bText);
+              currY += 28;
+            }
+
+            const time = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            time.setAttribute("x", x1 + 14); time.setAttribute("y", currY);
+            time.setAttribute("font-size", subColW < 140 ? "10" : "11");
+            time.setAttribute("font-weight", "700");
+            time.setAttribute("fill", pal.fg); time.textContent = timeRangeStr;
+            g.appendChild(time);
+            currY += 20;
+
+            let details = "";
+            if (ev.location) details += `📍 ${ev.location} `;
+            if (ev.with) details += `👤 ${ev.with}`;
+            if (details && (y1 + blockH - currY >= 14)) {
+              const det = document.createElementNS("http://www.w3.org/2000/svg", "text");
+              det.setAttribute("x", x1 + 14); det.setAttribute("y", currY);
+              det.setAttribute("font-size", "10"); det.setAttribute("font-weight", "600");
+              det.setAttribute("fill", pal.fg); det.textContent = details;
+              g.appendChild(det);
+            }
+          } else if (blockH >= 55) {
+            let currY = y1 + 16;
+            const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            title.setAttribute("x", x1 + 12); title.setAttribute("y", currY);
+            title.setAttribute("font-size", "12"); title.setAttribute("font-weight", "800");
+            title.setAttribute("fill", pal.fg); title.textContent = ev.title;
+            g.appendChild(title);
+            currY += 18;
+
+            const time = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            time.setAttribute("x", x1 + 12); time.setAttribute("y", currY);
+            time.setAttribute("font-size", "10"); time.setAttribute("font-weight", "700");
+            time.setAttribute("fill", pal.fg); time.textContent = `${timeRangeStr} (${durStr})`;
+            g.appendChild(time);
+          } else {
+            const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            title.setAttribute("x", x1 + 10); title.setAttribute("y", y1 + 16);
+            title.setAttribute("font-size", "10"); title.setAttribute("font-weight", "800");
+            title.setAttribute("fill", pal.fg); title.textContent = `${ev.title} (${timeRangeStr})`;
+            g.appendChild(title);
+          }
+
+          svg.appendChild(g);
+        });
+      });
+
+      // 3. 各国のブロック間を結ぶ斜めの時差リンク線を描画
+      Object.keys(plan.events).forEach(eid => {
+        const ev = plan.events[eid];
+        const pal = COLORS[ev.color] || COLORS["Ocean Blue"];
+        const colMap = renderedEventCardCenters[eid];
+        if (!colMap) return;
+
+        const visibleColIndices = tzs.map((tz, idx) => idx).filter(idx => colMap[idx] !== undefined);
+
+        for (let j = 0; j < visibleColIndices.length - 1; j++) {
+          const idx1 = visibleColIndices[j];
+          const idx2 = visibleColIndices[j + 1];
+          const b1 = colMap[idx1];
+          const b2 = colMap[idx2];
+
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", b1.rightX + 2); line.setAttribute("y1", b1.cy);
+          line.setAttribute("x2", b2.leftX - 2); line.setAttribute("y2", b2.cy);
+          line.setAttribute("stroke", pal.line); line.setAttribute("stroke-width", "2");
+          line.setAttribute("stroke-dasharray", "4,4");
+          svg.appendChild(line);
+        }
+      });
+    }
+
+    /* ==========================================
+       空白ホバー & クリック作成
+       ========================================== */
+    const container = document.getElementById("calendar-container");
+
+    container.addEventListener("mousemove", (e) => {
+      if (!state.renderInfo) return;
+      const svg = document.getElementById("calendar-svg");
+      const rect = svg.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const { COL_START, COL_GAP, colW, hourH, tzs } = state.renderInfo;
+
+      let targetCol = null;
+      tzs.forEach((_, i) => {
+        const x1 = COL_START + i * (colW + COL_GAP);
+        const x2 = x1 + colW;
+        if (x >= x1 && x <= x2) targetCol = i;
+      });
+
+      if (targetCol === null || y < 70) {
+        clearGhost();
+        return;
+      }
+
+      const slotIdx = Math.floor((y - 70) / hourH);
+      if (slotIdx < 0) { clearGhost(); return; }
+
+      const slotY1 = 70 + slotIdx * hourH;
+      const slotY2 = slotY1 + hourH;
+      const slotX1 = COL_START + targetCol * (colW + COL_GAP);
+
+      for (let b of state.renderedBoxes) {
+        if (b.col === targetCol && !(slotY2 <= b.y1 || slotY1 >= b.y2)) {
+          clearGhost();
+          return;
+        }
+      }
+
+      if (state.currentHoverSlot && state.currentHoverSlot.col === targetCol && state.currentHoverSlot.slot === slotIdx) {
+        return;
+      }
+      state.currentHoverSlot = { col: targetCol, slot: slotIdx };
+
+      clearGhost();
+      const ghost = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      ghost.id = "hover-ghost";
+
+      const gRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      gRect.setAttribute("x", slotX1 + 2); gRect.setAttribute("y", slotY1 + 2);
+      gRect.setAttribute("width", colW - 4); gRect.setAttribute("height", hourH - 4);
+      gRect.setAttribute("rx", "12"); gRect.setAttribute("fill", "#EEF2FF");
+      gRect.setAttribute("stroke", "#818CF8"); gRect.setAttribute("stroke-width", "1.5");
+      gRect.setAttribute("stroke-dasharray", "4,4");
+      ghost.appendChild(gRect);
+
+      const gText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      gText.setAttribute("x", slotX1 + colW / 2); gText.setAttribute("y", slotY1 + hourH / 2 + 6);
+      gText.setAttribute("text-anchor", "middle"); gText.setAttribute("font-size", "18");
+      gText.setAttribute("font-weight", "800"); gText.setAttribute("fill", "#6366F1");
+      gText.textContent = "＋";
+      ghost.appendChild(gText);
+
+      svg.appendChild(ghost);
+    });
+
+    container.addEventListener("mouseleave", clearGhost);
+
+    function clearGhost() {
+      const g = document.getElementById("hover-ghost");
+      if (g) g.remove();
+      state.currentHoverSlot = null;
+    }
+
+    container.addEventListener("click", (e) => {
+      if (!state.renderInfo) return;
+      const svg = document.getElementById("calendar-svg");
+      const rect = svg.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const { COL_START, COL_GAP, colW, hourH, minHours, baseDate, tzs } = state.renderInfo;
+
+      let targetCol = null;
+      tzs.forEach((_, i) => {
+        const x1 = COL_START + i * (colW + COL_GAP);
+        const x2 = x1 + colW;
+        if (x >= x1 && x <= x2) targetCol = i;
+      });
+
+      if (targetCol === null || y < 70) return;
+
+      const slotIdx = Math.floor((y - 70) / hourH);
+      const targetHour = Math.floor(minHours + slotIdx);
+
+      const targetTz = tzs[targetCol];
+      const localDate = new Date(baseDate.getTime() + targetHour * 3600000);
+      const dateStr = `${localDate.getUTCFullYear()}-${String(localDate.getUTCMonth() + 1).padStart(2, '0')}-${String(localDate.getUTCDate()).padStart(2, '0')}`;
+      const timeStr = `${String(localDate.getUTCHours()).padStart(2, '0')}:00`;
+      const endHour = (localDate.getUTCHours() + 1) % 24;
+      const endTimeStr = `${String(endHour).padStart(2, '0')}:00`;
+
+      clearGhost();
+      openEventModal(null, { baseTz: targetTz, dateStr, timeStr, endTimeStr });
+    });
+
+    /* ==========================================
+       Event Dialog & Operations
+       ========================================== */
+    function openEventModal(editId = null, preset = null) {
+      state.editingEventId = editId;
+      const plan = state.plans[state.activePlanId];
+      const ev = editId ? plan.events[editId] : null;
+
+      document.getElementById("btn-delete-event").style.display = ev ? "block" : "none";
+
+      const baseTzSel = document.getElementById("ev-base-tz");
+      baseTzSel.innerHTML = "";
+      plan.timezones.forEach(tz => {
+        const opt = document.createElement("option");
+        opt.value = tz; opt.textContent = tz;
+        if (ev && ev.base_tz === tz) opt.selected = true;
+        else if (preset && preset.baseTz === tz) opt.selected = true;
+        baseTzSel.appendChild(opt);
+      });
+
+      const colorSel = document.getElementById("ev-color");
+      colorSel.innerHTML = "";
+      Object.keys(COLORS).forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c; opt.textContent = c;
+        if (ev && ev.color === c) opt.selected = true;
+        colorSel.appendChild(opt);
+      });
+
+      const now = new Date();
+      document.getElementById("ev-title").value = ev ? ev.title : "Meeting";
+      document.getElementById("ev-loc").value = ev ? (ev.location || "") : "";
+      document.getElementById("ev-with").value = ev ? (ev.with || "") : "";
+
+      if (ev) {
+        const iana = TIMEZONES[ev.base_tz];
+        const sParts = getDatePartsInTz(new Date(ev.start), iana);
+        const eParts = getDatePartsInTz(new Date(ev.end), iana);
+
+        document.getElementById("ev-date").value = `${sParts.year}-${String(sParts.month).padStart(2, '0')}-${String(sParts.day).padStart(2, '0')}`;
+        document.getElementById("ev-start-time").value = `${String(sParts.hour).padStart(2, '0')}:${String(sParts.minute).padStart(2, '0')}`;
+        document.getElementById("ev-end-time").value = `${String(eParts.hour).padStart(2, '0')}:${String(eParts.minute).padStart(2, '0')}`;
+      } else if (preset) {
+        document.getElementById("ev-date").value = preset.dateStr;
+        document.getElementById("ev-start-time").value = preset.timeStr;
+        document.getElementById("ev-end-time").value = preset.endTimeStr;
+      } else {
+        document.getElementById("ev-date").value = now.toISOString().split("T")[0];
+        document.getElementById("ev-start-time").value = "10:00";
+        document.getElementById("ev-end-time").value = "11:00";
+      }
+
+      const cbContainer = document.getElementById("ev-checkboxes");
+      cbContainer.innerHTML = "";
+      plan.timezones.forEach(tz => {
+        const lbl = document.createElement("label");
+        lbl.style.fontSize = "11px"; lbl.style.display = "flex"; lbl.style.alignItems = "center"; lbl.style.gap = "4px";
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.value = tz;
+        cb.checked = ev ? ev.visible_in.includes(tz) : true;
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(tz.split(" ")[1] || tz));
+        cbContainer.appendChild(lbl);
+      });
+
+      document.getElementById("modal-event").classList.add("active");
+    }
+
+    function saveEvent() {
+      const plan = state.plans[state.activePlanId];
+      const title = document.getElementById("ev-title").value || "Meeting";
+      const baseTz = document.getElementById("ev-base-tz").value;
+      const dateStr = document.getElementById("ev-date").value;
+      const sTime = document.getElementById("ev-start-time").value;
+      const eTime = document.getElementById("ev-end-time").value;
+      const color = document.getElementById("ev-color").value;
+
+      const visible = Array.from(document.querySelectorAll("#ev-checkboxes input:checked")).map(cb => cb.value);
+      if (visible.length === 0) return alert("Please select at least one timezone to display.");
+
+      const iana = TIMEZONES[baseTz];
+      const sUtc = parseDateInTz(dateStr, sTime, iana);
+      let eUtc = parseDateInTz(dateStr, eTime, iana);
+
+      if (eUtc <= sUtc) {
+        eUtc = new Date(eUtc.getTime() + 86400000);
+      }
+
+      const eid = state.editingEventId || `ev_${Date.now()}`;
+      plan.events[eid] = {
+        title,
+        start: sUtc.toISOString(),
+        end: eUtc.toISOString(),
+        base_tz: baseTz,
+        color,
+        visible_in: visible,
+        location: document.getElementById("ev-loc").value,
+        with: document.getElementById("ev-with").value
+      };
+
+      closeModal("modal-event");
+      renderCalendar();
+    }
+
+    function deleteCurrentEvent() {
+      if (!state.editingEventId) return;
+      delete state.plans[state.activePlanId].events[state.editingEventId];
+      closeModal("modal-event");
+      renderCalendar();
+    }
+
+    function clearAllEvents() {
+      if (confirm(LANGUAGES[state.lang]?.confirm_clear || "Clear all events?")) {
+        state.plans[state.activePlanId].events = {};
+        renderCalendar();
+      }
+    }
+
+    /* ==========================================
+       Share, Export & Modals
+       ========================================== */
+    function exportShareLink() {
+      const plan = state.plans[state.activePlanId];
+      const jsonStr = JSON.stringify(plan);
+      const token = btoa(unescape(encodeURIComponent(jsonStr)));
+      const url = `${window.location.origin}${window.location.pathname}#${token}`;
+      navigator.clipboard.writeText(url).then(() => {
+        alert(LANGUAGES[state.lang]?.share_copied || "Share link copied!");
+      });
+    }
+
+    function openImportModal() { document.getElementById("modal-import").classList.add("active"); }
+    
+    function pasteImportFromClipboard() {
+      navigator.clipboard.readText().then(text => {
+        document.getElementById("import-input").value = text;
+      }).catch(() => {
+        alert("Clipboard access permission denied.");
+      });
+    }
+
+    function doImportPlan() {
+      const raw = document.getElementById("import-input").value.trim();
+      if (!raw) return;
+      const token = raw.includes("#") ? raw.split("#")[1] : raw;
+      try {
+        const jsonStr = decodeURIComponent(escape(atob(token)));
+        const data = JSON.parse(jsonStr);
+        state.planCounter++;
+        const nid = `imported_${state.planCounter}`;
+        state.plans[nid] = data;
+        state.activePlanId = nid;
+        closeModal("modal-import");
+        if (document.getElementById("screen-main").classList.contains("active")) {
+          renderMainTabs();
+          renderCalendar();
+        } else {
+          launchCalendar();
+        }
+      } catch (e) { alert("Invalid link or corrupted token."); }
+    }
+
+    function openGuideModal() {
+      const dict = LANGUAGES[state.lang] || LANGUAGES["English"];
+      const container = document.getElementById("guide-content");
+      container.innerHTML = "";
+      dict.guide_items.forEach(item => {
+        const p = document.createElement("p");
+        p.textContent = item;
+        container.appendChild(p);
+      });
+      document.getElementById("modal-guide").classList.add("active");
+    }
+
+    function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+    
+    // ⭐️ 印刷用エクスポート関数（SVG viewBox自動設定でA4用紙に完全フィット）
+    function exportPDF() {
+      if (!state.renderInfo) return;
+      const svg = document.getElementById("calendar-svg");
+      const { totalW, totalH } = state.renderInfo;
+      
+      const origViewBox = svg.getAttribute("viewBox");
+      const origWidth = svg.style.width;
+      const origHeight = svg.style.height;
+
+      // 印刷用にSVG全体のバウンディングボックスをviewBoxに設定
+      svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
+      svg.style.width = "100%";
+      svg.style.height = "100%";
+
+      window.print();
+
+      window.addEventListener("afterprint", () => {
+        if (origViewBox) svg.setAttribute("viewBox", origViewBox);
+        else svg.removeAttribute("viewBox");
+        svg.style.width = origWidth;
+        svg.style.height = origHeight;
+      }, { once: true });
+    }
+
+    window.addEventListener("resize", () => {
+      if (document.getElementById("screen-main").classList.contains("active")) {
+        renderCalendar();
+      }
+    });
+  </script>
+</body>
+</html>
