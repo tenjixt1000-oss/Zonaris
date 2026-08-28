@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%234F46E5'/><circle cx='50' cy='50' r='30' fill='none' stroke='%2338BDF8' stroke-width='8'/><circle cx='50' cy='50' r='14' fill='%23FFFFFF'/></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zonaris - Visual Multi-Timezone Planner</title>
@@ -1409,31 +1408,60 @@
 
     function closeModal(id) { document.getElementById(id).classList.remove("active"); }
     
-    // ⭐️ 印刷用エクスポート関数（SVG viewBox自動設定でA4用紙に完全フィット）
-    function exportPDF() {
-      if (!state.renderInfo) return;
-      const svg = document.getElementById("calendar-svg");
-      const { totalW, totalH } = state.renderInfo;
-      
-      const origViewBox = svg.getAttribute("viewBox");
-      const origWidth = svg.style.width;
-      const origHeight = svg.style.height;
+   // ⭐️ 印刷用エクスポート関数（広告処理 ＆ PDF/印刷出力）
+async function exportPDF() {
+  if (!state.renderInfo) return;
 
-      // 印刷用にSVG全体のバウンディングボックスをviewBoxに設定
-      svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
-      svg.style.width = "100%";
-      svg.style.height = "100%";
+  // 1. 広告表示を呼び出す（1.5秒待っても出ない場合は自動スキップ）
+  await new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      console.log("広告待機完了 / PDFへ移行");
+      resolve();
+    }, 1500);
 
-      window.print();
-
-      window.addEventListener("afterprint", () => {
-        if (origViewBox) svg.setAttribute("viewBox", origViewBox);
-        else svg.removeAttribute("viewBox");
-        svg.style.width = origWidth;
-        svg.style.height = origHeight;
-      }, { once: true });
+    try {
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+        window.Capacitor.Plugins.AdMob.showInterstitial()
+          .then(() => {
+            clearTimeout(timer);
+            resolve();
+          })
+          .catch((err) => {
+            console.log("広告ロード待機（テスト/未読込のためスキップ）:", err);
+            clearTimeout(timer);
+            resolve();
+          });
+      } else {
+        clearTimeout(timer);
+        resolve();
+      }
+    } catch (e) {
+      clearTimeout(timer);
+      resolve();
     }
+  });
 
+  // 2. 印刷・PDF画面の呼び出し
+  const svg = document.getElementById("calendar-svg");
+  const { totalW, totalH } = state.renderInfo;
+
+  const origViewBox = svg.getAttribute("viewBox");
+  const origWidth = svg.style.width;
+  const origHeight = svg.style.height;
+
+  svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
+  svg.style.width = "100%";
+  svg.style.height = "100%";
+
+  window.print();
+
+  window.addEventListener("afterprint", () => {
+    if (origViewBox) svg.setAttribute("viewBox", origViewBox);
+    else svg.removeAttribute("viewBox");
+    svg.style.width = origWidth;
+    svg.style.height = origHeight;
+  }, { once: true });
+}
     window.addEventListener("resize", () => {
       if (document.getElementById("screen-main").classList.contains("active")) {
         renderCalendar();
