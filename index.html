@@ -100,32 +100,40 @@
     #screen-start { position: relative; align-items: center; justify-content: center; padding: 40px 20px; }
     .start-card {
       background: var(--card-bg); border-radius: var(--radius-lg); border: 1.5px solid var(--border);
-      box-shadow: var(--shadow-md); width: 100%; max-width: 600px; padding: 40px; position: relative; z-index: 10;
+      box-shadow: var(--shadow-md); 
+      width: 100%; max-width: 780px;
+      padding: 50px 60px;
+      position: relative; z-index: 10;
     }
-    .start-header { text-align: center; margin-bottom: 24px; }
-    .start-header h1 { font-size: 34px; font-weight: 800; color: var(--primary); }
-    .start-header .tagline { font-size: 13px; font-weight: 700; color: #6366F1; margin: 4px 0; }
-    .start-header .subtitle { font-size: 13px; color: var(--text-sub); }
+    .start-header { text-align: center; margin-bottom: 32px; }
+    .start-header h1 { font-size: 42px; font-weight: 800; color: var(--primary); }
+    .start-header .tagline { font-size: 16px; font-weight: 700; color: #6366F1; margin: 8px 0; }
+    .start-header .subtitle { font-size: 15px; color: var(--text-sub); }
 
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; }
-    .plan-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .form-group { margin-bottom: 28px; }
+    .form-group label { display: block; font-size: 15px; font-weight: 700; color: var(--text-sub); margin-bottom: 10px; }
+    .plan-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
     .plan-pill {
-      background: #F1F5F9; color: var(--text-sub); padding: 6px 14px; border-radius: var(--radius-full);
-      font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;
+      background: #F1F5F9; color: var(--text-sub); 
+      padding: 10px 18px;
+      border-radius: var(--radius-full);
+      font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;
     }
     .plan-pill.active { background: var(--primary); color: #FFF; }
-    .plan-pill .close { font-size: 10px; cursor: pointer; }
+    .plan-pill .close { font-size: 12px; cursor: pointer; }
 
     .input-text, select {
-      width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border);
-      background: #F8FAFC; color: var(--text-main); font-family: inherit; font-size: 13px; font-weight: 600;
+      width: 100%; 
+      padding: 14px 18px;
+      border-radius: var(--radius-md); border: 1px solid var(--border);
+      background: #F8FAFC; color: var(--text-main); font-family: inherit; 
+      font-size: 15px; font-weight: 600;
       outline: none; transition: border-color 0.2s;
     }
     .input-text:focus, select:focus { border-color: var(--primary); background: #FFF; }
 
-    .tz-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-    .tz-item { display: flex; gap: 8px; align-items: center; }
+    .tz-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .tz-item { display: flex; gap: 10px; align-items: center; }
 
     /* Calendar Main Screen */
     #screen-main { flex: 1; height: 100vh; overflow: hidden; }
@@ -274,9 +282,9 @@
         <button class="btn-secondary" onclick="addTimezoneToCurrentPlan()" data-i18n="add_region">＋ Add Region</button>
       </div>
 
-      <div style="display: flex; gap: 10px; margin-top: 28px;">
-        <button class="btn-subtle" onclick="openGuideModal()" style="flex: 1;" data-i18n="how_to_use">📖 Guide</button>
-        <button class="btn-primary" onclick="launchCalendar()" style="flex: 2; font-size: 14px;" data-i18n="launch">Launch Calendar ➔</button>
+      <div style="display: flex; gap: 14px; margin-top: 36px;">
+        <button class="btn-subtle" onclick="openGuideModal()" style="flex: 1; font-size: 15px; padding: 14px;" data-i18n="how_to_use">📖 Guide</button>
+        <button class="btn-primary" onclick="launchCalendar()" style="flex: 2; font-size: 16px; padding: 14px;" data-i18n="launch">Launch Calendar ➔</button>
       </div>
     </div>
   </div>
